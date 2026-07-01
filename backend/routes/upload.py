@@ -11,14 +11,15 @@ from backend.services.vector_store import (
 from backend.database import update_doc_status
 from backend.models.document import Document
 
+# NEW IMPORTS
+from backend.graph.graph_builder import build_graph_for_chunk
+import time
+
 import uuid
 
 router = APIRouter()
 
 ALLOWED = {"pdf", "docx", "txt"}
-
-
-
 
 
 @router.post("/upload")
@@ -33,11 +34,12 @@ async def upload_document(file: UploadFile = File(...)):
 
     file_bytes = await file.read()
     doc_id = str(uuid.uuid4())
+    filename = file.filename
 
     # --------------------------------------------------
     # 1. Parse document
     # --------------------------------------------------
-    raw_text = parse_document(file.filename, file_bytes)
+    raw_text = parse_document(filename, file_bytes)
 
     if not raw_text.strip():
         raise HTTPException(
@@ -51,7 +53,7 @@ async def upload_document(file: UploadFile = File(...)):
     chunks = chunk_text(
         raw_text,
         doc_id,
-        file.filename
+        filename
     )
 
     # --------------------------------------------------
@@ -67,18 +69,29 @@ async def upload_document(file: UploadFile = File(...)):
     upsert_chunks(chunks, embeddings)
 
     # --------------------------------------------------
-    # 5. Update DB
+    # 5. Build Knowledge Graph
     # --------------------------------------------------
-    update_doc_status(doc_id, "indexed")
+    for chunk in chunks:
+        build_graph_for_chunk(
+            chunk,
+            doc_id,
+            filename
+        )
+        time.sleep(0.5)  # Respect Gemini rate limits
+
+    # --------------------------------------------------
+    # 6. Update DB
+    # --------------------------------------------------
+    update_doc_status(doc_id, "graph_built")
 
     # --------------------------------------------------
     # Optional document record
     # --------------------------------------------------
     doc = Document(
         id=doc_id,
-        filename=file.filename,
+        filename=filename,
         filetype=ext,
-        status="indexed",
+        status="graph_built",
         chunk_count=len(chunks),
     )
 
@@ -87,6 +100,6 @@ async def upload_document(file: UploadFile = File(...)):
 
     return {
         "doc_id": doc_id,
-        "chunks_created": len(chunks),
-        "status": "indexed"
+        "chunks": len(chunks),
+        "status": "graph_built"
     }
