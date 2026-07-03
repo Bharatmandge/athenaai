@@ -1,35 +1,49 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+from typing import Optional
+from backend.graph.workflow import athena_workflow
 
 router = APIRouter()
 
-from backend.services.llm_service import generate_answer
-from backend.retrieval.context_builder import build_citation_list, build_context
-from backend.retrieval.hybrid_retriever import hybrid_retrieve as hybrid_retriever
-# removed import: backend.schemas.chat does not exist, using local ChatRequest definition
 class ChatRequest(BaseModel):
-    query: str
-    top_k: int = 5
-
+    query:  str
+    doc_id: Optional[str] = None
+    top_k:  int = 5
 
 class ChatResponse(BaseModel):
     answer:             str
-    citations:          list[str]
-    query_entities:     list[str]
+    citations:          list
+    query_entities:     list
     graph_context_used: bool
-    model_used:         str          # ← add this
+    model_used:         str
+    agent_logs:         list
+    plan:               str
 
 @router.post("/", response_model=ChatResponse)
 async def chat(req: ChatRequest):
-    retrieval = hybrid_retriever(req.query, req.top_k)
-    context   = build_context(retrieval)
-    citations = build_citation_list(retrieval["vector_chunks"])
-    result    = generate_answer(req.query, context, citations)
+    initial_state = {
+        "query":              req.query,
+        "plan":               None,
+        "vector_chunks":      None,
+        "graph_context":      None,
+        "query_entities":     None,
+        "context_string":     None,
+        "draft_answer":       None,
+        "final_answer":       None,
+        "citations":          None,
+        "model_used":         None,
+        "agent_logs":         [],
+        "graph_context_used": False
+    }
+
+    result = athena_workflow.invoke(initial_state)
 
     return ChatResponse(
-        answer=result["answer"],
-        citations=citations,
-        query_entities=retrieval["query_entities"],
-        graph_context_used=bool(retrieval["graph_context"]),
-        model_used=result["model_used"]    # corrected key
+        answer=result.get("final_answer") or "No answer generated",
+        citations=result.get("citations") or [],
+        query_entities=result.get("query_entities") or [],
+        graph_context_used=result.get("graph_context_used") or False,
+        model_used=result.get("model_used") or "unknown",
+        agent_logs=result.get("agent_logs") or [],
+        plan=result.get("plan") or ""
     )
