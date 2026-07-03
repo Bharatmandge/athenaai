@@ -1,11 +1,14 @@
 import google.generativeai as genai
-import json, re, os
+from groq import Groq
+import os, json, re
+from dotenv import load_dotenv
+
+load_dotenv()
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash")
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-EXTRACTION_PROMPT = """
-Extract entities and relationships from this text.
+EXTRACTION_PROMPT = """Extract entities and relationships from this text.
 Return ONLY valid JSON, no explanation, no markdown fences.
 
 Format:
@@ -19,17 +22,52 @@ Format:
 }}
 
 Text:
-{text}
-"""
+{text}"""
+
+
+def _parse_json(raw: str) -> dict:
+    """Strip markdown fences and parse JSON safely."""
+    raw = re.sub(r"```json|```", "", raw).strip()
+    return json.loads(raw)
+
+
+def _extract_with_gemini(chunk_text: str) -> dict:
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    prompt = EXTRACTION_PROMPT.format(text=chunk_text[:2000])
+    response = model.generate_content(prompt)
+    return _parse_json(response.text)
+
+
+def _extract_with_groq(chunk_text: str) -> dict:
+    prompt = EXTRACTION_PROMPT.format(text=chunk_text[:2000])
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,       # very low — we want structured JSON, not creativity
+        max_tokens=1024
+    )
+    return _parse_json(response.choices[0].message.content)
+
 
 def extract_entities(chunk_text: str) -> dict:
+    """Gemini primary → Groq fallback for entity extraction."""
+    # try Gemini first
     try:
-        prompt = EXTRACTION_PROMPT.format(text=chunk_text[:2000])
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
-        # strip markdown fences if present
-        raw = re.sub(r"```json|```", "", raw).strip()
-        return json.loads(raw)
+        result = _extract_with_gemini(chunk_text)
+        print("[Extractor] Used: Gemini")
+        return result
     except Exception as e:
-        print(f"Entity extraction failed: {e}")
-        return {"entities": [], "relationships": []}
+        error_str = str(e)
+        if "429" in error_str or "quota" in error_str.lower():
+            print("[Extractor] Gemini quota hit — switching to Groq")
+        else:
+            print(f"[Extractor] Gemini error — switching to Groq: {error_str[:60]}")
+
+    # fallback to Groq
+    try:
+        result = _extract_with_groq(chunk_text)
+        print("[Extractor] Used: Groq (fallback)")
+        return result
+    except Exception as groq_err:
+        print(f"[Extractor] Groq also failed: {groq_err}")
+        return {"entities": [], "relationships": []}   # never crash the pipeline

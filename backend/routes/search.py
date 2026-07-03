@@ -78,3 +78,16 @@ async def search(request: SearchRequest):
         "query": request.query,
         "results": results,
     }
+
+@router.get("/count")
+def get_collection_count():
+    from backend.services.vector_store import client, COLLECTION
+    try:
+        info = client.get_collection(COLLECTION)
+        return {
+            "collection": COLLECTION,
+            "total_points": info.points_count,
+            "status": info.status
+        }
+    except Exception as e:
+        return {"error": str(e)}

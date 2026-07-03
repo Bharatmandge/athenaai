@@ -27,5 +27,3 @@ def build_context(retrieval_result: dict) -> str:
 
 def build_citation_list(vector_chunks: list) -> list[str]:
     return list({c["filename"] for c in vector_chunks})
-
-    

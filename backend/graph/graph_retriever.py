@@ -34,3 +34,17 @@ def find_path_between(entity_a: str, entity_b: str) -> list:
         RETURN [n IN nodes(path) | n.name] AS path_nodes,
                length(path) AS hops
     """, {"a": entity_a, "b": entity_b})
+
+def get_graph_context_for_query(entity_names: list) -> str:
+    if not entity_names:
+        return ""
+    try:
+        results = []
+        for name in entity_names[:5]:
+            neighbors = get_entity_neighbors(name, depth=2)
+            for n in neighbors:
+                results.append(f"{name} --[{n.get('relation', 'RELATED_TO')}]--> {n.get('name', '')}")
+        return "\n".join(results)
+    except Exception as e:
+        print(f"[GraphRetriever] Failed: {e} — continuing without graph context")
+        return ""   # chat still works, just without graph enrichment
