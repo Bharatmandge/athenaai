@@ -429,9 +429,6 @@ Every answer also includes an inline **Critic score** (0.0–1.0) computed in re
 
 **Bharat** — MCA Final Year · AI/ML Engineer
 
-[![LinkedIn](https://www.linkedin.com/in/bharat-mandge/)
-[![GitHub](https://github.com/Bharatmandge)
-
 
 ---
 
