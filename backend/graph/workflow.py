@@ -18,20 +18,23 @@ def route_after_retriever(state: AthenaState) -> str:
 
 
 def route_after_critic(state: AthenaState) -> str:
-    score       = state.get("critique_score", 1.0)
+    score       = state.get("critique_score", 1.0) or 1.0
     retry_count = state.get("retry_count", 0) or 0
 
-    # hard cap — never retry more than once, period
+    print(f"[Workflow] route_after_critic — score: {score}, retry_count: {retry_count}")
+
+    # HARD CAP — if retry already happened once, force END no matter what
     if retry_count >= 1:
-        print(f"[Workflow] Max retries reached — forcing END")
+        print(f"[Workflow] Hard cap hit (retry_count={retry_count}) — forcing END")
         return "end"
 
     if score < 0.7:
-        print(f"[Workflow] Score {score} < 0.7 — sending to responder for retry")
+        print(f"[Workflow] Score {score} < 0.7 — one retry allowed")
         return "responder"
 
-    print(f"[Workflow] Score {score} — accepted, routing to END")
+    print(f"[Workflow] Score {score} accepted — routing to END")
     return "end"
+
 
 # ---Build workflow --------
 

@@ -8,6 +8,8 @@ from backend.services.vector_store import create_collection
 from backend.routes.upload import router as upload_router
 from backend.routes.search import router as search_router
 from backend.routes.chat import router as chat_router  # <-- Added your new chat router
+from backend.routes.research import router as research_router
+
 
 # Create FastAPI app
 app = FastAPI(title="Athena API")
@@ -37,6 +39,9 @@ app.include_router(upload_router, prefix="/api", tags=["Upload"])
 app.include_router(search_router, prefix="/api", tags=["Search"])
 # Hooked up the chat router with its own prefix so it doesn't clash with others
 app.include_router(chat_router, prefix="/api/chat", tags=["Chat"]) 
+
+
+app.include_router(research_router, prefix="/api/research", tags=["research"])
 
 
 # Health Check

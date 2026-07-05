@@ -9,6 +9,7 @@ def responder_node(state: AthenaState) -> AthenaState:
     context = state.get("context_string", "")
     plan    = state.get("plan", "")
     citations = state.get("citations", [])
+    retry_count = state.get("retry_count", 0)
 
     # inject plan into query so LLM knows how to structure the answer
     enriched_query = f"""Answer plan:
@@ -31,9 +32,10 @@ User question: {query}"""
     logs.append({"agent": "responder", "duration_s": duration, "status": status})
 
     return {
-        **state,
-        "draft_answer": answer,
-        "final_answer": answer,
-        "model_used":   model_used,
-        "agent_logs":   logs
-    }
+    **state,
+    "draft_answer": answer,
+    "final_answer": answer,
+    "model_used":   model_used,
+    "retry_count":  retry_count + 1,
+    "agent_logs":   logs
+}
