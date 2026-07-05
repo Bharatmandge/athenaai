@@ -8,13 +8,21 @@ class AthenaState(TypedDict):
     graph_context:     Optional[str]
     query_entities:    Optional[list]
     context_string:    Optional[str]
-
-    draft_answer:      Optional[str]
     citations:         Optional[list]
-    final_answer:      Optional[str]
-    model_used:        Optional[str]
 
-    agent_logs:        Optional[list]
+    # graph agent  - NEW
+    deep_graph_context:   Optional[str]
+    graph_paths:          Optional[list]
+
+    # responder 
+    draft_answer:         Optional[str]
+    critique_score:       Optional[float]
+    retry_count:          Optional[int]
+
+    # final 
+    final_answer:         Optional[str]
+    model_used:           Optional[str]
     graph_context_used:   Optional[bool]
+    agent_logs:           Optional[list]
 
     

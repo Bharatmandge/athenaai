@@ -1,5 +1,5 @@
 # pyrefly: ignore [missing-import]
-import google.generativeai as genai
+
 # pyrefly: ignore [missing-import]
 from groq import Groq
 import os
@@ -8,8 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# configure clients
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+from google import genai
+from google.genai import types
+client_gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 SYSTEM_PROMPT = """You are Athena, an intelligent knowledge assistant.

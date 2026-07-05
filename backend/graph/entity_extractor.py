@@ -1,11 +1,11 @@
-import google.generativeai as genai
 from groq import Groq
 import os, json, re
 from dotenv import load_dotenv
-
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+from google import genai
+from google.genai import types
+client_gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 EXTRACTION_PROMPT = """Extract entities and relationships from this text.
@@ -32,9 +32,11 @@ def _parse_json(raw: str) -> dict:
 
 
 def _extract_with_gemini(chunk_text: str) -> dict:
-    model = genai.GenerativeModel("gemini-2.0-flash")
     prompt = EXTRACTION_PROMPT.format(text=chunk_text[:2000])
-    response = model.generate_content(prompt)
+    response = client_gemini.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt
+    )
     return _parse_json(response.text)
 
 

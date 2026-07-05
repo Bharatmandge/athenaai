@@ -55,8 +55,8 @@ def upsert_chunks(chunks: list[dict], embeddings: list[list[float]]):
 
 def similarity_search(query: str, top_k: int = 5) -> list[dict]:
     from backend.services.embedder import embed_text
-    from qdrant_client.models import QueryRequest
 
+    # task_type param kept for compatibility but local model ignores it
     query_vec = embed_text(query, task_type="retrieval_query")
 
     results = client.query_points(

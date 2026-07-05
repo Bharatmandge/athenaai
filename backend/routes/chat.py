@@ -18,6 +18,8 @@ class ChatResponse(BaseModel):
     model_used:         str
     agent_logs:         list
     plan:               str
+    critique:           str
+    critique_score:     float
 
 @router.post("/", response_model=ChatResponse)
 async def chat(req: ChatRequest):
@@ -32,6 +34,9 @@ async def chat(req: ChatRequest):
         "final_answer":       None,
         "citations":          None,
         "model_used":         None,
+        "critique":           None,
+        "critique_score":     None,
+        "retry_count":        0,
         "agent_logs":         [],
         "graph_context_used": False
     }
@@ -45,5 +50,7 @@ async def chat(req: ChatRequest):
         graph_context_used=result.get("graph_context_used") or False,
         model_used=result.get("model_used") or "unknown",
         agent_logs=result.get("agent_logs") or [],
-        plan=result.get("plan") or ""
+        plan=result.get("plan") or "",
+        critique=result.get("critique") or "",
+        critique_score=result.get("critique_score") or 0.0
     )

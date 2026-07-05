@@ -2,12 +2,14 @@
 import time 
 from backend.agents.state import AthenaState
 from groq import Groq
-import google.generativeai as genai
+
 import os, re
 from dotenv import load_dotenv
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+from google import genai
+from google.genai import types
+client_gemini = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 PLANNER_PROMPT = """You are a query planning agent.
@@ -18,9 +20,11 @@ Question: {query}
 
 Plan (3 steps max):"""
 
-def _plan_with_gemini(query:str) -> str:
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    response = model.generate_content(PLANNER_PROMPT.format(query=query))
+def _plan_with_gemini(query: str) -> str:
+    response = client_gemini.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=PLANNER_PROMPT.format(query=query)
+    )
     return response.text.strip()
 
 def _plan_with_groq(query: str) -> str:
