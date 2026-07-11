@@ -1,0 +1,22 @@
+[
+  {
+    "question": "What is the primary objective of DentalVision AI?",
+    "ground_truth": "The primary objective is to engineer a complete end-to-end machine learning pipeline for dental image analysis, specifically focusing on the segmentation of 3D Cone Beam Computed Tomography (CBCT) volumes."
+  },
+  {
+    "question": "What deep learning architecture does DentalVision AI use?",
+    "ground_truth": "DentalVision AI uses the 3D Res-UNet architecture, which combines residual blocks to prevent vanishing gradients with UNet skip-connections to preserve high-frequency edge details."
+  },
+  {
+    "question": "What evaluation metrics does DentalVision AI use?",
+    "ground_truth": "DentalVision AI uses Dice Coefficient, Intersection over Union (IoU), Precision, and Recall as evaluation metrics."
+  },
+  {
+    "question": "What post-processing techniques does DentalVision AI apply?",
+    "ground_truth": "DentalVision AI applies Morphological Closing, Hole Filling, and Small Object Removal as mathematical post-processing steps."
+  },
+  {
+    "question": "What technologies does DentalVision AI use for deployment?",
+    "ground_truth": "DentalVision AI uses FastAPI for the backend, React and Vite for the frontend, Docker for containerization, and PyTorch for the ML model."
+  }
+]

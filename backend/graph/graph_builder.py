@@ -1,6 +1,6 @@
 from backend.graph.entity_extractor import extract_entities
 from backend.graph.neo4j_client import run_query
-
+import time 
 
 def create_document_node(doc_id: str, filename: str):
     run_query("""
@@ -51,3 +51,4 @@ def build_graph_for_chunk(chunk: dict, doc_id: str, filename: str):
     create_document_node(doc_id, filename)
     create_entity_nodes(extracted.get("entities", []), doc_id)
     create_relationship(extracted.get("relationships", []))
+    time.sleep(1.5)

@@ -20,6 +20,7 @@ class ChatResponse(BaseModel):
     plan:               str
     critique:           str
     critique_score:     float
+    vector_chunks:      list
 
 @router.post("/", response_model=ChatResponse)
 async def chat(req: ChatRequest):
@@ -52,5 +53,6 @@ async def chat(req: ChatRequest):
         agent_logs=result.get("agent_logs") or [],
         plan=result.get("plan") or "",
         critique=result.get("critique") or "",
-        critique_score=result.get("critique_score") or 0.0
+        critique_score=result.get("critique_score") or 0.0,
+        vector_chunks=result.get("vector_chunks") or []
     )

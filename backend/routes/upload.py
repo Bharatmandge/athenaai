@@ -1,10 +1,4 @@
-
-
-
-
-
-
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 
 from backend.services.document_parser import parse_document
 from backend.services.chunker import chunk_text
@@ -16,11 +10,8 @@ from backend.services.vector_store import (
 
 from backend.database import update_doc_status
 from backend.models.document import Document
-
-# NEW IMPORTS
 from backend.graph.graph_builder import build_graph_for_chunk
 import time
-
 import uuid
 
 router = APIRouter()
@@ -28,8 +19,23 @@ router = APIRouter()
 ALLOWED = {"pdf", "docx", "txt"}
 
 
+def _build_graph_background(chunks: list, doc_id: str, filename: str):
+    """Runs after upload returns — user doesn't wait for this."""
+    print(f"[Upload] 🔄 Background graph building started for {filename}")
+    for chunk in chunks:
+        try:
+            build_graph_for_chunk(chunk, doc_id, filename)
+            time.sleep(1.5)
+        except Exception as e:
+            print(f"[Upload] ⚠️ Graph build failed for chunk: {e}")
+    print(f"[Upload] ✅ Background graph building complete for {filename}")
+
+
 @router.post("/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...)
+):
     ext = file.filename.rsplit(".", 1)[-1].lower()
 
     if ext not in ALLOWED:
@@ -66,7 +72,6 @@ async def upload_document(file: UploadFile = File(...)):
     # 3. Generate embeddings
     # --------------------------------------------------
     texts = [chunk["text"] for chunk in chunks]
-
     embeddings = embed_batch(texts)
 
     # --------------------------------------------------
@@ -75,20 +80,14 @@ async def upload_document(file: UploadFile = File(...)):
     upsert_chunks(chunks, embeddings)
 
     # --------------------------------------------------
-    # 5. Build Knowledge Graph
+    # 5. Update DB immediately
     # --------------------------------------------------
-    for chunk in chunks:
-        build_graph_for_chunk(
-            chunk,
-            doc_id,
-            filename
-        )
-        time.sleep(0.5)  # Respect Gemini rate limits
+    update_doc_status(doc_id, "indexed")
 
     # --------------------------------------------------
-    # 6. Update DB
+    # 6. Build Knowledge Graph in background (non-blocking)
     # --------------------------------------------------
-    update_doc_status(doc_id, "graph_built")
+    background_tasks.add_task(_build_graph_background, chunks, doc_id, filename)
 
     # --------------------------------------------------
     # Optional document record
@@ -97,7 +96,7 @@ async def upload_document(file: UploadFile = File(...)):
         id=doc_id,
         filename=filename,
         filetype=ext,
-        status="graph_built",
+        status="indexed",
         chunk_count=len(chunks),
     )
 
@@ -105,7 +104,7 @@ async def upload_document(file: UploadFile = File(...)):
     # save_document(doc)
 
     return {
-        "doc_id": doc_id,
-        "chunks": len(chunks),
-        "status": "graph_built"
+        "doc_id":  doc_id,
+        "chunks":  len(chunks),
+        "status":  "indexed"   # graph builds in background
     }

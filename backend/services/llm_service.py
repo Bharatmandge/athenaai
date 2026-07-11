@@ -36,13 +36,15 @@ Answer the question using only the context above. Cite sources where relevant.""
 
 
 def _call_gemini(prompt: str) -> str:
-    """Primary: Gemini 1.5 Flash — higher free tier limits than 2.5."""
-    model = genai.GenerativeModel(
-        "gemini-2.0-flash",           # Updated model name
-        system_instruction=SYSTEM_PROMPT,
-        generation_config={"temperature": 0.3, "max_output_tokens": 1024}
+    response = client_gemini.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            temperature=0.3,
+            max_output_tokens=1024
+        )
     )
-    response = model.generate_content(prompt)
     return response.text
 
 
